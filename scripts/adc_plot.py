@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import glob
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from scipy import interpolate
 
 
 
@@ -21,307 +22,128 @@ file_number = args.file_number_
 directory = '/home/dominiv/simulink/dac/adc_data/'
 ending = file_number
 
-#amp1_list = sorted(glob.glob(directory + 'max_amp1_/*'))
-#amp2_list = sorted(glob.glob(directory + 'max_amp2_/*'))
-#adc1_list = sorted(glob.glob(directory + 'adc1_/*'))
-#adc2_list = sorted(glob.glob(directory + 'adc2_/*'))
-#x_list = sorted(glob.glob(directory + 'counts_/*'))
-#ave_list = sorted(glob.glob(directory + 'ave_/*'))
-#
+data_ = np.loadtxt('/home/dominiv/simulink/dac/scripts/celsius_data.txt')
+x = data_[:,0]
+y = data_[:,1]*1e3
+r_0 = 10000
+r_fix = 10000
+b_0 = 333
+N = 14
+f = interpolate.interp1d(y,x)
+
+def bit_res(bit):
+    r = r_fix*((b_0/bit)*((r_0+r_fix)/r_0)-1)
+    return r
+
+def load_data(name, extra=False, additive=None):
+    if extra:
+        my_list = sorted(glob.glob(directory + name + str(ending) +str(additive)+'/*'))
+        print((directory + name + ending+'_on' +'/*'))
+        my_array = []
+        for i in my_list:
+            data = np.load(i)
+            my_array.append(data)
+        name = np.concatenate(my_array, axis = 0)
+        return name
+    
+
+    my_list = sorted(glob.glob(directory + name + str(ending) +'/*'))
+    print((directory + name + ending +'/*'))
+    my_array = []
+    for i in my_list:
+        data = np.load(i)
+        my_array.append(data)
+    name = np.concatenate(my_array, axis = 0)
+    return name
+
+def plotter(x=None,*args, sharex=False,sharey=False, **kwargs):
+    number = len(args)
+    print(number)
+    if x is None:
+        x = list(range(len(args[0])))
+
+    fig, ax = plt.subplots(number,1, sharex=sharex, sharey=sharey, figsize=(10,6))
+    if number == 1:
+        ax=[ax]
+
+    for i,data in enumerate(args):
+        label = kwargs.get(f"label{i+1}", f"Data {i + 1}")
+        axisx = kwargs.get(f"axisx{i+1}", f"axis {i + 1}")
+        axisy = kwargs.get(f"axisy{i+1}", f"axis {i + 1}")
+        title = kwargs.get(f"title", f"title {i + 1}")
+        ax[i].plot(x,data, color='black', label = label)
+        ax[i].set_xlabel(axisx)
+        ax[i].set_ylabel(axisy)
+        ax[0].set_title(title)
+
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
 
 
 
-#amp1_array = []
-#amp2_array = []
-#adc1_array = []
-#adc2_array = []
-#x_array = []
-#ave_array = []
-#
-#
-#
-#
-#
-#for i in amp1_list:
-#    data = np.load(i)
-#    amp1_array.append(data)
-#
-#for i in amp2_list:
-#    data = np.load(i)
-#    amp2_array.append(data)
-#
-#for i in adc1_list:
-#    data = np.load(i)
-#    adc1_array.append(data)
-#
-#for i in adc2_list:
-#    data = np.load(i)
-#    adc2_array.append(data)
-#
-#for i in x_list:
-#    data = np.load(i)
-#    x_array.append(data)
-#
-#for i in ave_list:
-#    data = np.load(i)
-#    ave_array.append(data)
-#
-#
-#amp1 = np.concatenate(amp1_array, axis = 0)
-#amp2 = np.concatenate(amp2_array, axis = 0)
-#adc1 = np.concatenate(adc1_array, axis = 0)
-#adc2 = np.concatenate(adc2_array, axis = 0)
-#x = np.concatenate(x_array, axis = 0)
-#ave = np.concatenate(ave_array, axis = 0)
-#
-##ave = ave
-#
-#print('amp1 shape:', amp1.shape)
-#print('amp2 shape:', amp2.shape)
-#print('adc1 shape:', adc1.shape)
-#print('adc2 shape:', adc2.shape)
-#print('count shape:', x.shape)
-#print('ave shape:', ave.shape)
-#
+
+
+
+
+
+
 if args.p1:
-    amp1_list = sorted(glob.glob(directory + 'max_amp1' + str(ending) +'/*'))
-    amp1_array = []
-    for i in amp1_list:
-        data = np.load(i)
-        amp1_array.append(data)
-    amp1 = np.concatenate(amp1_array, axis = 0)
-
-    amp2_list = sorted(glob.glob(directory + 'max_amp2'+str(ending)+'/*'))
-    amp2_array = []
-    for i in amp2_list:
-        data = np.load(i)
-        amp2_array.append(data)
-    amp2 = np.concatenate(amp2_array, axis = 0)
+    amp1 = load_data('max_amp1')
+    amp2 = load_data('max_amp2')
     print('amp1 shape:', amp1.shape)
     print('amp2 shape:', amp2.shape)
+    plotter(None,amp1,amp2,sharex=False,sharey=False, label1='max_amp1', label2='max_amp2', axisx1='counts', axisx2='counts', axisy1='amplitude',axisy2='amp',title='ADC Max Amps')
 
-    fig, ax = plt.subplots(2,1, sharex=True, sharey=False, figsize=(10,6))
-    ax[0].plot(amp1, label = 'max amp1')
-    ax[0].set_title('amp1')
-
-    ax[1].plot(amp2, label = 'max amp2')
-    ax[1].set_title('amp2')
-    plt.tight_layout()
-    plt.legend()
-    plt.show()
-    #plt.figure()
-    #plt.plot(amp2, label = 'Amp2')
-    #plt.legend()
-    #plt.ylabel('Max amplitudes')
-    #plt.xlabel('Counts')
-    #plt.show()
 
 if args.p2:
-    adc1_list = sorted(glob.glob(directory + 'adc1'+str(ending)+'/*'))
-    adc1_array = []
-    for i in adc1_list:
-        data = np.load(i)
-        adc1_array.append(data)
-    adc1 = np.concatenate(adc1_array, axis = 0)
-
-    adc2_list = sorted(glob.glob(directory + 'adc2'+str(ending)+'/*'))
-    adc2_array = []
-    for i in adc2_list:
-        data = np.load(i)
-        adc2_array.append(data)
-    adc2 = np.concatenate(adc2_array, axis = 0)
+    adc1 = load_data('adc1')
+    adc2 = load_data('adc2')
     print('adc1 shape:', adc1.shape)
     print('adc2 shape:', adc2.shape)
-    fig, ax = plt.subplots(2,1, sharex=True, sharey=False, figsize=(10,6))
-    ax[0].plot(adc1[0], label = 'input')
-    ax[0].set_title('ADC1')
+    plotter(None,adc1[0],adc2[0],sharex=True,sharey=False,label1='adc1',label2='adc2',axisx1='counts',axisx2='adc inputs', title='ADC Data')
 
-    ax[1].plot(adc2[0], label = 'input')
-    ax[1].set_title('ADC2')
-    plt.tight_layout()
-    plt.legend()
-    plt.show()
-    #plt.figure()
-    #plt.plot(adc1[0], label = 'adc1 data')
-    #plt.legend()
-    #plt.ylabel('Amplitudes')
-    #plt.xlabel('Counts')
-    #plt.show()
-
-
-if args.p3:
-    plt.figure()
-    plt.plot(adc2[0], label = 'adc2 data')
-    plt.legend()
-    plt.ylabel('Amplitudes')
-    plt.xlabel('Counts')
-    plt.show()
-
-if args.p4:
-    plt.figure()
-    plt.plot(ave[0], label = 'ave data')
-    plt.legend()
-    plt.ylabel('Average Temp')
-    plt.xlabel('Counts')
-    plt.show()
+#if args.p3:
+#    plt.figure()
+#    plt.plot(adc2[0], label = 'adc2 data')
+#    plt.legend()
+#    plt.ylabel('Amplitudes')
+#    plt.xlabel('Counts')
+#    plt.show()
+#
+#if args.p4:
+#    plt.figure()
+#    plt.plot(ave[0], label = 'ave data')
+#    plt.legend()
+#    plt.ylabel('Average Temp')
+#    plt.xlabel('Counts')
+#    plt.show()
 
 if args.p5:
-    ave_list = sorted(glob.glob(directory + 'ave' + str(ending) +'/*'))
-    ave_array = []
-    for i in ave_list:
-        data = np.load(i)
-        ave_array.append(data)
-    ave = np.concatenate(ave_array, axis = 0)
-    #ave = ave/13.076923076923105# - 9.6
-
-    amp2_list = sorted(glob.glob(directory + 'max_amp2' + str(ending) +'/*'))
-    amp2_array = []
-    for i in amp2_list:
-        data = np.load(i)
-        amp2_array.append(data)
-    amp2 = np.concatenate(amp2_array, axis = 0)
+    ave = load_data('ave')[8:]
+    ave = f(bit_res(ave))
+    amp2 = load_data('max_amp2')[8:]
     print('ave shape:', ave.shape)
     print('amp2 shape:', amp2.shape)
-#
-    #from scipy.interpolate import interp1d
-    #n_bits = 8
-    #V_ref = 5
-    #R_fixed = 10000
-    #V_in = 4.1
-    #
-    ## Resistance (Ohms) and corresponding temperature (Celsius) from datasheet
-    ##resistance_values = np.array([277.2, 51.82, 31.77, 19.68, 10, 2.472, .6744, .2258, .1027, .0619]) * 1e3 # Example values
-    #resistance_values = np.loadtxt('/home/dominiv/simulink/dac/scripts/celsius_data.txt')[:,0] * 1e3 # Example values
-    ##temperature_values = np.array([-40, -10, 0, 10, 25, 60, 100, 140, 175, 200])  # Corresponding temperatures
-    #temperature_values = np.loadtxt('/home/dominiv/simulink/dac/scripts/celsius_data.txt')[:,1]  # Corresponding temperatures
-    #print((resistance_values.shape), len(temperature_values.shape))
-    ## Create interpolation function
-    #resistance_to_temp = interp1d(resistance_values, temperature_values, kind='linear', fill_value="extrapolate")
-    #
-    #def bits_to_temperature_table(bits):
-    #    # Step 1: Calculate V_out
-    #    V_out = (bits / (2**n_bits - 1)) * V_ref
-    #
-    #    # Step 2: Calculate R_thermistor
-    #    R_thermistor = R_fixed * ((V_in / V_out) - 1)
-    #
-    #    # Step 3: Get temperature using interpolation
-    #    T_celsius = resistance_to_temp(R_thermistor)
-    #
-    #    return T_celsius
-    #
-    ## Example usage:
-    #adc_bits = 638
-    #temperature = bits_to_temperature_table(adc_bits)
-    #temp = bits_to_temperature_table(ave[8:])
-    ##print(f"Temperature: {temperature:.2f} °C")
-#    
-    
-    
-    
-    
 
-
-    fig, ax = plt.subplots(2,1, sharex=True, sharey=False, figsize=(10,6))
-    #ax[0].plot(ave[8:], label = 'average temp')
-    ax[0].plot(ave[8:], label = 'average temp')
-    ax[0].set_ylabel('Celsius')
-    ax[0].set_title('Temperature')
-
-    ax[1].plot(amp2[8:], label = 'max value of dac')
-    ax[1].set_xlabel('Time')
-    ax[1].set_ylabel('max amp bit')
-    ax[1].set_title('DAC')
-    plt.tight_layout()
-    plt.legend()
-    plt.show()
+    plotter(None,ave,amp2,sharex=True,sharey=False, label1='ave', label2='max_amp2', axisx1='counts', axisx2='counts', axisy1='Celsius',axisy2='max amp bit',title='Temp and Max Amp')
 
 
 
 
 if args.p6:
-    ave_list = sorted(glob.glob(directory + 'ave' + str(ending) +'_on'+'/*'))
-    ave_array = []
-    for i in ave_list:
-        data = np.load(i)
-        ave_array.append(data)
-    aven = np.concatenate(ave_array, axis = 0)
-    #ave = ave/13.076923076923105# - 9.6
+    aven = load_data('ave', extra=True, additive='_on')
+    amp2n = load_data('max_amp2', extra=True, additive='_on')
+    avef = load_data('ave', extra=True, additive='_off')
+    amp2f = load_data('max_amp2', extra=True, additive='_off')
+    
 
-    amp2_list = sorted(glob.glob(directory + 'max_amp2' + str(ending) +'_on'+'/*'))
-    amp2_array = []
-    for i in amp2_list:
-        data = np.load(i)
-        amp2_array.append(data)
-    amp2n = np.concatenate(amp2_array, axis = 0)
-    print('ave shape:', aven.shape)
-    print('amp2 shape:', amp2n.shape)
     
-    ave_list = sorted(glob.glob(directory + 'ave' + str(ending)+ '_off'+'/*'))
-    ave_array = []
-    for i in ave_list:
-        data = np.load(i)
-        ave_array.append(data)
-    avef = np.concatenate(ave_array, axis = 0)
-    #ave = ave/13.076923076923105# - 9.6
-
-    amp2_list = sorted(glob.glob(directory + 'max_amp2' + str(ending) +'_off'+'/*'))
-    amp2_array = []
-    for i in amp2_list:
-        data = np.load(i)
-        amp2_array.append(data)
-    amp2f = np.concatenate(amp2_array, axis = 0)
-#
-    #from scipy.interpolate import interp1d
-    #n_bits = 8
-    #V_ref = 5
-    #R_fixed = 10000
-    #V_in = 4.1
-    #
-    ## Resistance (Ohms) and corresponding temperature (Celsius) from datasheet
-    ##resistance_values = np.array([277.2, 51.82, 31.77, 19.68, 10, 2.472, .6744, .2258, .1027, .0619]) * 1e3 # Example values
-    #resistance_values = np.loadtxt('/home/dominiv/simulink/dac/scripts/celsius_data.txt')[:,0] * 1e3 # Example values
-    ##temperature_values = np.array([-40, -10, 0, 10, 25, 60, 100, 140, 175, 200])  # Corresponding temperatures
-    #temperature_values = np.loadtxt('/home/dominiv/simulink/dac/scripts/celsius_data.txt')[:,1]  # Corresponding temperatures
-    #print((resistance_values.shape), len(temperature_values.shape))
-    ## Create interpolation function
-    #resistance_to_temp = interp1d(resistance_values, temperature_values, kind='linear', fill_value="extrapolate")
-    #
-    #def bits_to_temperature_table(bits):
-    #    # Step 1: Calculate V_out
-    #    V_out = (bits / (2**n_bits - 1)) * V_ref
-    #
-    #    # Step 2: Calculate R_thermistor
-    #    R_thermistor = R_fixed * ((V_in / V_out) - 1)
-    #
-    #    # Step 3: Get temperature using interpolation
-    #    T_celsius = resistance_to_temp(R_thermistor)
-    #
-    #    return T_celsius
-    #
-    ## Example usage:
-    #adc_bits = 638
-    #temperature = bits_to_temperature_table(adc_bits)
-    #temp = bits_to_temperature_table(ave[8:])
-    ##print(f"Temperature: {temperature:.2f} °C")
-#    
-    
-    
-    ave = np.concatenate((aven, avef))#*0.02635658914728682
+    ave = np.concatenate((aven, avef))#0.00039166598100936627#*0.02635658914728682
     amp2 = np.concatenate((amp2n, amp2f))
     print(ave.shape, amp2.shape)
+    ave = f(bit_res(ave))
 
 
-    fig, ax = plt.subplots(2,1, sharex=True, sharey=False, figsize=(10,6))
-    #ax[0].plot(ave[8:], label = 'average temp')
-    ax[0].plot(ave, label = 'average temp')
-    ax[0].set_ylabel('Celsius')
-    ax[0].set_title('Temperature')
+    plotter(None,ave,amp2,sharex=True,sharey=False, label1='ave', label2='max_amp2', axisx1='counts', axisx2='counts', axisy1='Celsius',axisy2='max amp bit',title='Temp and Max Amp')
 
-    ax[1].plot(amp2, label = 'max value of dac')
-    ax[1].set_xlabel('Time')
-    ax[1].set_ylabel('max amp bit')
-    ax[1].set_title('DAC')
-    plt.tight_layout()
-    plt.legend()
-    plt.show()
